@@ -1,2 +1,2 @@
-// Set this to the deployed StudySide API origin (no trailing slash).
-window.STUDYSIDE_API_URL = "https://YOUR-STUDYSIDE-API.example.com";
+// StudySide is running in free, browser-only mode. No paid API server is configured.
+window.STUDYSIDE_API_URL = "";
