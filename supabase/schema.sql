@@ -208,7 +208,8 @@ as $
         q.published, q.created_at
  from public.quizzes q
  where auth.uid() is not null
-   and (q.author_id=auth.uid() or (q.published=true and (q.class_id is null or private.is_class_member(q.class_id))))
+   and q.published=true
+   and (q.class_id is null or private.is_class_member(q.class_id))
 $;
 
 -- Grade answers on the server. The browser can submit choices, never a score.
