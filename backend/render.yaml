@@ -3,7 +3,7 @@ services:
     name: studyside-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
-    dockerContext: .
+    dockerContext: ./backend
     plan: starter
     healthCheckPath: /api/health
     disk:
@@ -17,5 +17,3 @@ services:
         generateValue: true
       - key: ALLOWED_ORIGINS
         value: https://wessonbrandon6-hue.github.io
-      - key: TEACHER_EMAILS
-        sync: false
