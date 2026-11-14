@@ -159,3 +159,92 @@ drop policy if exists "owners delete own resource objects" on storage.objects;
 create policy "owners delete own resource objects" on storage.objects for delete to authenticated using(bucket_id='studyside-resources' and (storage.foldername(name))[1]=auth.uid()::text);
 -- To promote a teacher, run this manually as project owner after verifying the person's email:
 -- update public.profiles set role='teacher' where id=(select id from auth.users where email='teacher@example.com');
+
+
+-- Security and Data API hardening (November 2026)
+-- Explicit grants are required for projects where public-schema tables are not
+-- automatically exposed through the Data API. RLS remains the row-level gate.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.profiles, public.classes,
+ public.class_members, public.resources, public.quizzes,
+ public.quiz_attempts, public.announcements to authenticated;
+
+-- Never allow a browser client to insert its own claimed quiz score.
+drop policy if exists "student submits own attempt" on public.quiz_attempts;
+
+-- Student-facing quiz view strips answer keys before they reach the browser.
+create or replace view public.student_quizzes
+with (security_invoker = true)
+as
+select q.id, q.author_id, q.class_id, q.title, q.subject, q.description,
+       coalesce((
+         select jsonb_agg(item - 'answer' order by ord)
+         from jsonb_array_elements(q.questions) with ordinality as x(item, ord)
+       ), '[]'::jsonb) as questions,
+       q.published, q.created_at
+from public.quizzes q
+where q.published = true;
+
+grant select on public.student_quizzes to authenticated;
+
+-- Grade answers on the server. The browser can submit choices, never a score.
+create or replace function public.submit_quiz_attempt(target_quiz uuid, submitted_answers jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  quiz_questions jsonb;
+  question_count integer;
+  correct_count integer := 0;
+  answer_index integer;
+  i integer;
+  final_score integer;
+begin
+  if auth.uid() is null then
+    raise exception 'Sign in required';
+  end if;
+  if jsonb_typeof(submitted_answers) <> 'array' then
+    raise exception 'Answers must be an array';
+  end if;
+
+  select q.questions into quiz_questions
+  from public.quizzes q
+  where q.id = target_quiz
+    and q.published = true
+    and (q.class_id is null or public.is_class_member(q.class_id));
+
+  if quiz_questions is null then
+    raise exception 'Quiz not found or not available to this account';
+  end if;
+
+  question_count := jsonb_array_length(quiz_questions);
+  if question_count = 0 or jsonb_array_length(submitted_answers) <> question_count then
+    raise exception 'Answer count does not match quiz';
+  end if;
+
+  for i in 0..question_count - 1 loop
+    answer_index := coalesce((submitted_answers ->> i)::integer, -1);
+    if answer_index = (quiz_questions -> i ->> 'answer')::integer then
+      correct_count := correct_count + 1;
+    end if;
+  end loop;
+
+  final_score := round(100.0 * correct_count / question_count)::integer;
+  insert into public.quiz_attempts(quiz_id, student_id, answers, score)
+  values(target_quiz, auth.uid(), submitted_answers, final_score);
+
+  return final_score;
+end;
+$$;
+
+-- These helpers are only intended for authenticated RLS evaluation.
+revoke all on function public.is_teacher_of(uuid) from public, anon;
+revoke all on function public.is_class_member(uuid) from public, anon;
+revoke all on function public.join_class_with_code(text) from public, anon;
+revoke all on function public.submit_quiz_attempt(uuid, jsonb) from public, anon;
+grant execute on function public.is_teacher_of(uuid) to authenticated;
+grant execute on function public.is_class_member(uuid) to authenticated;
+grant execute on function public.join_class_with_code(text) to authenticated;
+grant execute on function public.submit_quiz_attempt(uuid, jsonb) to authenticated;
