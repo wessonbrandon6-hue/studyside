@@ -19,7 +19,7 @@ The study buddy is a local preset helper, not a live AI model. Browser tasks do 
 - Custom Node.js + Express API with SQLite; no Supabase dependency.
 - Backend source and deployment instructions: [backend/](backend/README.md) and [BACKEND_SETUP.md](BACKEND_SETUP.md).
 
-**Backend deployment is a separate step:** GitHub Pages only serves the frontend. Deploy the API with the root render.yaml (persistent storage required), then set the API URL in api-config.js.
+**Free hosting mode:** the shared student/teacher account portal is paused because it needs a continuously hosted backend. No paid server is configured. The GED subject lessons, quizzes, practice exams, notes, progress tracking and local resource library run directly in the browser.
 
 ## Daily YouTube Shorts automation
 A GitHub Actions workflow is scheduled daily at 15:00 UTC (17:00 South Africa time) and can also be run manually. It creates an original vertical video with text cards and generated English narration, then uploads through YouTube Data API v3. The upload is public by default.
