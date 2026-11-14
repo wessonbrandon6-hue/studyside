@@ -186,20 +186,30 @@ grant select, insert, update, delete on public.profiles, public.classes,
 -- Never allow a browser client to insert its own claimed quiz score.
 drop policy if exists "student submits own attempt" on public.quiz_attempts;
 
--- Student-facing quiz view strips answer keys before they reach the browser.
-create or replace view public.student_quizzes
-with (security_invoker = true)
-as
-select q.id, q.author_id, q.class_id, q.title, q.subject, q.description,
-       coalesce((
-         select jsonb_agg(item - 'answer' order by ord)
-         from jsonb_array_elements(q.questions) with ordinality as x(item, ord)
-       ), '[]'::jsonb) as questions,
-       q.published, q.created_at
-from public.quizzes q
-where q.published = true;
+-- Keep the answer-key column inaccessible through direct table queries.
+revoke select on public.quizzes from authenticated;
+grant select (id, author_id, class_id, title, subject, description, published, created_at)
+on public.quizzes to authenticated;
 
-grant select on public.student_quizzes to authenticated;
+-- Return only questions without answer keys through a narrowly scoped RPC.
+drop view if exists public.student_quizzes;
+create or replace function public.get_available_quizzes()
+returns table(
+ id uuid, author_id uuid, class_id uuid, title text, subject text,
+ description text, questions jsonb, published boolean, created_at timestamptz
+)
+language sql stable security definer set search_path=public, private
+as $
+ select q.id, q.author_id, q.class_id, q.title, q.subject, q.description,
+        coalesce((
+          select jsonb_agg(item - 'answer' order by ord)
+          from jsonb_array_elements(q.questions) with ordinality as x(item, ord)
+        ), '[]'::jsonb),
+        q.published, q.created_at
+ from public.quizzes q
+ where auth.uid() is not null
+   and (q.author_id=auth.uid() or (q.published=true and (q.class_id is null or private.is_class_member(q.class_id))))
+$;
 
 -- Grade answers on the server. The browser can submit choices, never a score.
 create or replace function public.submit_quiz_attempt(target_quiz uuid, submitted_answers jsonb)
@@ -258,7 +268,9 @@ revoke all on function private.is_teacher_of(uuid) from public, anon;
 revoke all on function private.is_class_member(uuid) from public, anon;
 revoke all on function public.join_class_with_code(text) from public, anon;
 revoke all on function public.submit_quiz_attempt(uuid, jsonb) from public, anon;
+revoke all on function public.get_available_quizzes() from public, anon;
 grant execute on function private.is_teacher_of(uuid) to authenticated;
 grant execute on function private.is_class_member(uuid) to authenticated;
 grant execute on function public.join_class_with_code(text) to authenticated;
 grant execute on function public.submit_quiz_attempt(uuid, jsonb) to authenticated;
+grant execute on function public.get_available_quizzes() to authenticated;
