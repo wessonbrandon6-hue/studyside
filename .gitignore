@@ -1,0 +1,6 @@
+output/
+__pycache__/
+*.py[cod]
+.env
+client_secrets.json
+token.json
