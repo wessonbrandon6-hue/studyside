@@ -1,0 +1,137 @@
+{
+  "topics": [
+    {
+      "id": "active-recall",
+      "title": "Stop rereading. Try this study trick instead 📚 #Shorts",
+      "hook": "Rereading your notes can feel productive, but try testing your memory instead.",
+      "steps": [
+        "Read one small section, then close your notes.",
+        "Write down everything you can remember without looking.",
+        "Check your notes and fill in the gaps you missed."
+      ],
+      "takeaway": "Make your brain retrieve the answer. That is active recall.",
+      "description": "A practical introduction to active recall: retrieve information from memory, check your gaps, and repeat.",
+      "tags": [
+        "active recall",
+        "study tips",
+        "learning science",
+        "student productivity"
+      ],
+      "accent": "#b7a8ff"
+    },
+    {
+      "id": "pomodoro",
+      "title": "Can't focus? Try the 25-minute reset ⏱️ #Shorts",
+      "hook": "If starting feels impossible, make the study session smaller.",
+      "steps": [
+        "Choose one task you can work on for 25 minutes.",
+        "Put your phone away and close unrelated tabs.",
+        "Take a five-minute break when the timer ends."
+      ],
+      "takeaway": "One focused sprint is better than waiting for perfect motivation.",
+      "description": "Use a simple Pomodoro-style focus sprint to get started and build momentum.",
+      "tags": [
+        "pomodoro",
+        "focus tips",
+        "study motivation",
+        "productivity"
+      ],
+      "accent": "#86dfc0"
+    },
+    {
+      "id": "spaced-practice",
+      "title": "The secret to remembering more: space it out 🧠 #Shorts",
+      "hook": "Want to remember what you study next week? Don't leave all the revision until tonight.",
+      "steps": [
+        "Review a new idea soon after you first learn it.",
+        "Test yourself again after a day or two.",
+        "Return to it later in the week, then again after a longer gap."
+      ],
+      "takeaway": "Short reviews spread over time can make recall stronger than one big cram session.",
+      "description": "A quick introduction to spaced practice and why revisiting material over time helps learning.",
+      "tags": [
+        "spaced repetition",
+        "revision tips",
+        "study smarter",
+        "learning"
+      ],
+      "accent": "#f4c77b"
+    },
+    {
+      "id": "task-chunking",
+      "title": "Your to-do list is too big. Do this first ✨ #Shorts",
+      "hook": "A huge assignment feels less scary when you stop treating it as one task.",
+      "steps": [
+        "Write the final thing you need to hand in.",
+        "Split it into three small actions you can actually start.",
+        "Choose the first action and work on it for ten minutes."
+      ],
+      "takeaway": "Make the next step obvious, small and easy to begin.",
+      "description": "A simple way to break a big assignment into smaller, more manageable actions.",
+      "tags": [
+        "student life",
+        "procrastination",
+        "study motivation",
+        "planning"
+      ],
+      "accent": "#f39bb0"
+    },
+    {
+      "id": "teach-back",
+      "title": "If you can teach it simply, you understand it 🎓 #Shorts",
+      "hook": "Here's a quick way to check whether a topic really makes sense to you.",
+      "steps": [
+        "Pick one concept from your notes.",
+        "Explain it out loud as if teaching a younger student.",
+        "Notice where you get stuck, then revisit only that part."
+      ],
+      "takeaway": "Explaining an idea reveals gaps that highlighting can hide.",
+      "description": "Use the teach-back technique to check your understanding and find knowledge gaps.",
+      "tags": [
+        "learning techniques",
+        "study tips",
+        "teach back",
+        "students"
+      ],
+      "accent": "#b7a8ff"
+    },
+    {
+      "id": "breaks",
+      "title": "Study breaks are not wasted time 🌿 #Shorts",
+      "hook": "Taking a break is part of a good study plan, not a failure of discipline.",
+      "steps": [
+        "Step away from your desk for a few minutes.",
+        "Stretch, drink water or look away from your screen.",
+        "Decide on the one task you'll return to next."
+      ],
+      "takeaway": "A real break helps you reset your attention before the next session.",
+      "description": "Build short, intentional breaks into your study routine to reset between focus sessions.",
+      "tags": [
+        "study breaks",
+        "student wellness",
+        "focus",
+        "productivity"
+      ],
+      "accent": "#86dfc0"
+    },
+    {
+      "id": "exam-prep",
+      "title": "Exam coming up? Start with this 3-step plan 📝 #Shorts",
+      "hook": "When exams are close, don't just reread everything from page one.",
+      "steps": [
+        "List the topics and mark the ones you find hardest.",
+        "Spend your first revision block on one difficult topic.",
+        "Do practice questions and review every mistake."
+      ],
+      "takeaway": "Use practice to find what needs work, then focus your revision there.",
+      "description": "A practical three-step approach to organising revision before an exam.",
+      "tags": [
+        "exam prep",
+        "revision plan",
+        "study tips",
+        "students"
+      ],
+      "accent": "#f4c77b"
+    }
+  ]
+}
