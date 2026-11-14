@@ -97,7 +97,16 @@ create policy "teacher deletes own class" on public.classes for delete to authen
 drop policy if exists "members can view class roster" on public.class_members;
 create policy "members can view class roster" on public.class_members for select to authenticated using(student_id=auth.uid() or public.is_teacher_of(class_id));
 drop policy if exists "student joins with code" on public.class_members;
-create policy "student joins with code" on public.class_members for insert to authenticated with check(student_id=auth.uid() and exists(select 1 from public.classes c where c.id=class_id));
+-- Join codes are validated only inside this function, never trusted from browser-side checks.
+create or replace function public.join_class_with_code(input_code text)
+returns uuid language plpgsql security definer set search_path=public
+as $ declare target uuid; begin
+ if auth.uid() is null then raise exception 'Sign in required'; end if;
+ select id into target from public.classes where join_code=upper(trim(input_code));
+ if target is null then raise exception 'Invalid class code'; end if;
+ insert into public.class_members(class_id,student_id) values(target,auth.uid()) on conflict do nothing;
+ return target;
+end $;
 drop policy if exists "teacher removes class members" on public.class_members;
 create policy "teacher removes class members" on public.class_members for delete to authenticated using(public.is_teacher_of(class_id));
 -- Resources: teachers share to a class; students can read class resources.
@@ -135,7 +144,12 @@ on conflict(id) do nothing;
 drop policy if exists "users upload own resource objects" on storage.objects;
 create policy "users upload own resource objects" on storage.objects for insert to authenticated with check(bucket_id='studyside-resources' and (storage.foldername(name))[1]=auth.uid()::text);
 drop policy if exists "owners read own resource objects" on storage.objects;
-create policy "owners read own resource objects" on storage.objects for select to authenticated using(bucket_id='studyside-resources' and (storage.foldername(name))[1]=auth.uid()::text);
+create policy "class members read shared resource objects" on storage.objects for select to authenticated using(
+ bucket_id='studyside-resources' and exists(
+  select 1 from public.resources r where r.storage_path=name
+  and (r.owner_id=auth.uid() or (r.class_id is not null and public.is_class_member(r.class_id)))
+ )
+);
 drop policy if exists "owners delete own resource objects" on storage.objects;
 create policy "owners delete own resource objects" on storage.objects for delete to authenticated using(bucket_id='studyside-resources' and (storage.foldername(name))[1]=auth.uid()::text);
 -- To promote a teacher, run this manually as project owner after verifying the person's email:
