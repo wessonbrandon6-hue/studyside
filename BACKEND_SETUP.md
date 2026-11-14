@@ -1,53 +1,36 @@
-# StudySide backend (optional, not deployed)
+# StudySide backend (optional)
 
-StudySide now uses its own Node.js API and SQLite database. The portal no longer calls Supabase.
+## Current setup: free browser-only mode
 
-## What is included
-- Password-hashed student and teacher accounts (bcrypt).
-- Signed API tokens and protected routes.
-- Classes, secure join codes and enrolments.
-- Private file uploads and authenticated downloads (20 MB limit).
-- Teacher-created quizzes, server-side grading and saved attempts.
-- Teacher dashboard and class announcements.
-- SQLite database stored on a persistent disk.
+StudySide is currently hosted as a static site on GitHub Pages. **No paid server has been created or deployed.** The Render deployment blueprint has been removed.
 
-## Hosting status\n\nStudySide is currently kept in free browser-only mode. No paid server has been created or deployed. The shared accounts/classes portal will remain unavailable until a free or self-hosted API is available. Do not deploy the Render blueprint; it has been removed from the repository.\n\n## Run the API yourself (optional)\n\nThe backend source is retained for a future self-hosted setup. This requires your own machine/server to stay online; it is not required for the GED tracker or subject lessons.\n\n### Previous hosted deployment notes (not active)\n\n## Deploy the API
-1. The frontend stays on GitHub Pages. The API must run on a Node.js host or your own server; GitHub Pages cannot run a backend.
-2. Deploy the repository backend/ directory using backend/Dockerfile. The root render.yaml is a Render deployment blueprint and uses a persistent disk. Render Starter and persistent disk resources are paid; check current pricing before deploying.
-3. Set JWT_SECRET to a unique random secret of at least 32 characters. Set DATA_DIR to a directory on the persistent disk (the blueprint uses /app/backend/data).
-4. Set ALLOWED_ORIGINS to https://wessonbrandon6-hue.github.io (comma-separated if you add another frontend origin).
-5. After deployment, check https://YOUR-API-HOST/api/health.
-6. Edit api-config.js and set STUDYSIDE_API_URL to the API origin, without a trailing slash. Commit; GitHub Pages redeploys the frontend.
+The GED Command Centre works without a backend:
+- Subject topic checklists and mastery tracking
+- Free subject video courses
+- Built-in quick quizzes and timed practice exams
+- Answer explanations and assessment history
+- Study planner, notes and personal resource library
+- Browser-based export and reports
 
-## Local development
-- Install Node.js 20 or newer.
-- In backend/, run npm install.
-- Copy .env.example to .env and set a long random JWT_SECRET.
-- Run npm start; API health check is http://localhost:3000/api/health.
-- Keep DATA_DIR on a persistent disk. Back up the entire directory.
+The Student & Teacher Portal is paused because shared accounts, class enrolments and cross-device file sharing require an always-on backend.
 
-## Teacher access
-Every public signup creates a student account. The site owner promotes a verified teacher account from the backend host shell after the teacher has registered:
+## Optional self-hosting
 
-    cd backend
-    npm run promote-teacher -- teacher@example.com
+The `backend/` folder contains an optional Node.js + Express + SQLite API for anyone who later has their own server or computer that can stay online. It is not needed for the static StudySide site.
 
-Do not expose server shell access or the database file to teachers or students.
+To run it locally:
+1. Install Node.js 20 or newer.
+2. Open a terminal in `backend/`.
+3. Run `npm install`.
+4. Copy `.env.example` to `.env` and set a private random `JWT_SECRET` of at least 32 characters.
+5. Run `npm start`.
+6. The API health check is `http://localhost:3000/api/health`.
 
-## API routes
-- POST /api/auth/register, POST /api/auth/login, GET /api/auth/me
-- GET/POST /api/classes, POST /api/classes/join
-- GET/POST /api/resources, GET /api/resources/:id/download
-- GET/POST /api/quizzes, POST /api/quizzes/:id/attempts
-- GET /api/teacher/dashboard
-- GET/POST /api/announcements
+A local API is only reachable on the computer running it unless you deliberately configure networking. Do not expose it publicly without HTTPS, secure secret management, backups, account verification, abuse controls and a privacy review. Never commit `.env`, database files or uploaded documents.
 
-Protected routes require Authorization: Bearer token.
+## Important
 
-## Important current limitations
-- This is an initial self-hosted backend, not a fully production-audited school platform.
-- Email verification and self-service password reset are not implemented yet.
-- Tokens expire after seven days; users sign in again after expiry.
-- SQLite and uploaded files live on the persistent disk. Back up that disk regularly.
-- Add monitoring, automated backups, account verification, abuse reporting, data-retention controls and a privacy policy before inviting a school or minors.
-- Use HTTPS and keep JWT_SECRET private. Never commit environment files, database files or uploaded documents.
+- GitHub Pages cannot run Node.js server code.
+- The browser-only GED tracker saves progress on the current device and browser; it does not automatically sync to other devices.
+- The shared portal remains disabled until a backend is deliberately hosted.
+- StudySide is an independent study aid, not an official GED Testing Service product. Check official test requirements and current syllabus information with the relevant exam provider.
