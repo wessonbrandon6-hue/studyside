@@ -142,7 +142,7 @@ app.post('/api/quizzes',auth,teacher,(req,res)=>{
   if(title.length<2)return fail(res,400,'Quiz title is required.');
   if(classId&&!db.prepare('SELECT 1 FROM classes WHERE id=? AND teacher_id=?').get(classId,req.user.id))return fail(res,403,'Choose one of your own classes.');
   const questions=parseQuestions(req.body.questions),q={id:id(),author_id:req.user.id,class_id:classId,title,subject,description:String(req.body.description||'').slice(0,1000),questions_json:JSON.stringify(questions),published:1,created_at:now()};
-  db.prepare('INSERT INTO quizzes VALUES(?,?,?,?,?,?,?,?,?,?)').run(q.id,q.author_id,q.class_id,q.title,q.subject,q.description,q.questions_json,q.published,q.created_at);
+  db.prepare('INSERT INTO quizzes VALUES(?,?,?,?,?,?,?,?,?)').run(q.id,q.author_id,q.class_id,q.title,q.subject,q.description,q.questions_json,q.published,q.created_at);
   res.status(201).json({quiz:{id:q.id,title:q.title,subject:q.subject,questionCount:questions.length}});
  }catch(e){fail(res,400,e.message);}
 });
