@@ -129,7 +129,12 @@ create policy "teacher deletes own quizzes" on public.quizzes for delete to auth
 drop policy if exists "student reads own attempts teacher reads class" on public.quiz_attempts;
 create policy "student reads own attempts teacher reads class" on public.quiz_attempts for select to authenticated using(student_id=auth.uid() or exists(select 1 from public.quizzes q where q.id=quiz_id and q.class_id is not null and public.is_teacher_of(q.class_id)));
 drop policy if exists "student submits own attempt" on public.quiz_attempts;
-create policy "student submits own attempt" on public.quiz_attempts for insert to authenticated with check(student_id=auth.uid() and exists(select 1 from public.quizzes q where q.id=quiz_id and q.published=true));
+create policy "student submits own attempt" on public.quiz_attempts for insert to authenticated with check(
+ student_id=auth.uid() and exists(
+  select 1 from public.quizzes q where q.id=quiz_id and q.published=true
+  and (q.class_id is null or public.is_class_member(q.class_id))
+ )
+);
 -- Announcements
 drop policy if exists "class members read announcements" on public.announcements;
 create policy "class members read announcements" on public.announcements for select to authenticated using(public.is_class_member(class_id));
