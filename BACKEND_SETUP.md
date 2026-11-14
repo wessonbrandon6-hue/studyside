@@ -1,4 +1,4 @@
-# StudySide backend setup (self-hosted)
+# StudySide backend (optional, not deployed)
 
 StudySide now uses its own Node.js API and SQLite database. The portal no longer calls Supabase.
 
@@ -11,7 +11,7 @@ StudySide now uses its own Node.js API and SQLite database. The portal no longer
 - Teacher dashboard and class announcements.
 - SQLite database stored on a persistent disk.
 
-## Deploy the API
+## Hosting status\n\nStudySide is currently kept in free browser-only mode. No paid server has been created or deployed. The shared accounts/classes portal will remain unavailable until a free or self-hosted API is available. Do not deploy the Render blueprint; it has been removed from the repository.\n\n## Run the API yourself (optional)\n\nThe backend source is retained for a future self-hosted setup. This requires your own machine/server to stay online; it is not required for the GED tracker or subject lessons.\n\n### Previous hosted deployment notes (not active)\n\n## Deploy the API
 1. The frontend stays on GitHub Pages. The API must run on a Node.js host or your own server; GitHub Pages cannot run a backend.
 2. Deploy the repository backend/ directory using backend/Dockerfile. The root render.yaml is a Render deployment blueprint and uses a persistent disk. Render Starter and persistent disk resources are paid; check current pricing before deploying.
 3. Set JWT_SECRET to a unique random secret of at least 32 characters. Set DATA_DIR to a directory on the persistent disk (the blueprint uses /app/backend/data).
