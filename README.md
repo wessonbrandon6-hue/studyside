@@ -13,6 +13,14 @@ A calmer student dashboard with an automated YouTube Shorts creator.
 
 The study buddy is a local preset helper, not a live AI model. Browser tasks do not sync across devices.
 
+## Student & teacher campus portal
+- Dedicated student and teacher accounts.
+- Class join codes, shared resource uploads, quizzes and announcements.
+- Custom Node.js + Express API with SQLite; no Supabase dependency.
+- Backend source and deployment instructions: [backend/](backend/README.md) and [BACKEND_SETUP.md](BACKEND_SETUP.md).
+
+**Backend deployment is a separate step:** GitHub Pages only serves the frontend. Deploy the API with the root render.yaml (persistent storage required), then set the API URL in api-config.js.
+
 ## Daily YouTube Shorts automation
 A GitHub Actions workflow is scheduled daily at 15:00 UTC (17:00 South Africa time) and can also be run manually. It creates an original vertical video with text cards and generated English narration, then uploads through YouTube Data API v3. The upload is public by default.
 
