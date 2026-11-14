@@ -1,6 +1,9 @@
 -- StudySide shared backend: run this entire file in Supabase SQL Editor.
 -- Security model: users sign up as students. Only an existing project owner/admin may promote teachers.
 create extension if not exists pgcrypto;
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to authenticated;
 create table if not exists public.profiles (
  id uuid primary key references auth.users(id) on delete cascade,
  display_name text not null default '',
@@ -61,12 +64,12 @@ create table if not exists public.announcements (
  body text not null,
  created_at timestamptz not null default now()
 );
-create or replace function public.is_teacher_of(target_class uuid)
+create or replace function private.is_teacher_of(target_class uuid)
 returns boolean language sql stable security definer set search_path=public
-as $$ select exists(select 1 from public.classes c where c.id=target_class and c.teacher_id=auth.uid()) $$;
-create or replace function public.is_class_member(target_class uuid)
-returns boolean language sql stable security definer set search_path=public
-as $$ select exists(select 1 from public.class_members m where m.class_id=target_class and m.student_id=auth.uid()) or public.is_teacher_of(target_class) $$;
+as $ select auth.uid() is not null and exists(select 1 from public.classes c where c.id=target_class and c.teacher_id=auth.uid()) $;
+create or replace function private.is_class_member(target_class uuid)
+returns boolean language sql stable security definer set search_path=public, private
+as $ select auth.uid() is not null and (exists(select 1 from public.class_members m where m.class_id=target_class and m.student_id=auth.uid()) or private.is_teacher_of(target_class)) $;
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path=public
 as $$ begin insert into public.profiles(id,display_name,role) values(new.id,coalesce(new.raw_user_meta_data->>'display_name',''),'student'); return new; end $$;
@@ -83,10 +86,21 @@ alter table public.announcements enable row level security;
 drop policy if exists "profile self read" on public.profiles;
 create policy "profile self read" on public.profiles for select to authenticated using(id=auth.uid() or exists(select 1 from public.class_members m join public.classes c on c.id=m.class_id where m.student_id=profiles.id and c.teacher_id=auth.uid()));
 drop policy if exists "profile self update" on public.profiles;
-create policy "profile self update" on public.profiles for update to authenticated using(id=auth.uid()) with check(id=auth.uid() and role=(select p.role from public.profiles p where p.id=auth.uid()));
+create policy "profile self update" on public.profiles for update to authenticated using(id=auth.uid()) with check(id=auth.uid());
+create or replace function public.prevent_profile_role_escalation()
+returns trigger language plpgsql set search_path=public
+as $ begin
+ if new.role is distinct from old.role and auth.uid() is not null then
+  raise exception 'Profile roles can only be changed by a project administrator';
+ end if;
+ return new;
+end $;
+drop trigger if exists protect_profile_role on public.profiles;
+create trigger protect_profile_role before update on public.profiles
+for each row execute function public.prevent_profile_role_escalation();
 -- Classes
 drop policy if exists "class visible to members" on public.classes;
-create policy "class visible to members" on public.classes for select to authenticated using(teacher_id=auth.uid() or public.is_class_member(id));
+create policy "class visible to members" on public.classes for select to authenticated using(teacher_id=auth.uid() or private.is_class_member(id));
 drop policy if exists "teacher creates class" on public.classes;
 create policy "teacher creates class" on public.classes for insert to authenticated with check(teacher_id=auth.uid() and exists(select 1 from public.profiles p where p.id=auth.uid() and p.role in ('teacher','admin')));
 drop policy if exists "teacher updates own class" on public.classes;
@@ -95,7 +109,7 @@ drop policy if exists "teacher deletes own class" on public.classes;
 create policy "teacher deletes own class" on public.classes for delete to authenticated using(teacher_id=auth.uid());
 -- Class memberships
 drop policy if exists "members can view class roster" on public.class_members;
-create policy "members can view class roster" on public.class_members for select to authenticated using(student_id=auth.uid() or public.is_teacher_of(class_id));
+create policy "members can view class roster" on public.class_members for select to authenticated using(student_id=auth.uid() or private.is_teacher_of(class_id));
 drop policy if exists "student joins with code" on public.class_members;
 -- Join codes are validated only inside this function, never trusted from browser-side checks.
 create or replace function public.join_class_with_code(input_code text)
@@ -108,40 +122,40 @@ as $ declare target uuid; begin
  return target;
 end $;
 drop policy if exists "teacher removes class members" on public.class_members;
-create policy "teacher removes class members" on public.class_members for delete to authenticated using(public.is_teacher_of(class_id));
+create policy "teacher removes class members" on public.class_members for delete to authenticated using(private.is_teacher_of(class_id));
 -- Resources: teachers share to a class; students can read class resources.
 drop policy if exists "read class resources" on public.resources;
-create policy "read class resources" on public.resources for select to authenticated using(owner_id=auth.uid() or (class_id is not null and public.is_class_member(class_id)));
+create policy "read class resources" on public.resources for select to authenticated using(owner_id=auth.uid() or (class_id is not null and private.is_class_member(class_id)));
 drop policy if exists "teacher uploads resources" on public.resources;
-create policy "teacher uploads resources" on public.resources for insert to authenticated with check(owner_id=auth.uid() and (class_id is null or public.is_teacher_of(class_id)));
+create policy "teacher uploads resources" on public.resources for insert to authenticated with check(owner_id=auth.uid() and (class_id is null or private.is_teacher_of(class_id)));
 drop policy if exists "owner deletes resources" on public.resources;
 create policy "owner deletes resources" on public.resources for delete to authenticated using(owner_id=auth.uid());
 -- Quizzes
 drop policy if exists "read published class quizzes" on public.quizzes;
-create policy "read published class quizzes" on public.quizzes for select to authenticated using(author_id=auth.uid() or (published=true and (class_id is null or public.is_class_member(class_id))));
+create policy "read published class quizzes" on public.quizzes for select to authenticated using(author_id=auth.uid() or (published=true and (class_id is null or private.is_class_member(class_id))));
 drop policy if exists "teacher creates quizzes" on public.quizzes;
-create policy "teacher creates quizzes" on public.quizzes for insert to authenticated with check(author_id=auth.uid() and exists(select 1 from public.profiles p where p.id=auth.uid() and p.role in ('teacher','admin')) and (class_id is null or public.is_teacher_of(class_id)));
+create policy "teacher creates quizzes" on public.quizzes for insert to authenticated with check(author_id=auth.uid() and exists(select 1 from public.profiles p where p.id=auth.uid() and p.role in ('teacher','admin')) and (class_id is null or private.is_teacher_of(class_id)));
 drop policy if exists "teacher edits own quizzes" on public.quizzes;
 create policy "teacher edits own quizzes" on public.quizzes for update to authenticated using(author_id=auth.uid()) with check(author_id=auth.uid());
 drop policy if exists "teacher deletes own quizzes" on public.quizzes;
 create policy "teacher deletes own quizzes" on public.quizzes for delete to authenticated using(author_id=auth.uid());
 -- Attempts: students can submit and read their own; teachers can read attempts for their class quizzes.
 drop policy if exists "student reads own attempts teacher reads class" on public.quiz_attempts;
-create policy "student reads own attempts teacher reads class" on public.quiz_attempts for select to authenticated using(student_id=auth.uid() or exists(select 1 from public.quizzes q where q.id=quiz_id and q.class_id is not null and public.is_teacher_of(q.class_id)));
+create policy "student reads own attempts teacher reads class" on public.quiz_attempts for select to authenticated using(student_id=auth.uid() or exists(select 1 from public.quizzes q where q.id=quiz_id and q.class_id is not null and private.is_teacher_of(q.class_id)));
 drop policy if exists "student submits own attempt" on public.quiz_attempts;
 create policy "student submits own attempt" on public.quiz_attempts for insert to authenticated with check(
  student_id=auth.uid() and exists(
   select 1 from public.quizzes q where q.id=quiz_id and q.published=true
-  and (q.class_id is null or public.is_class_member(q.class_id))
+  and (q.class_id is null or private.is_class_member(q.class_id))
  )
 );
 -- Announcements
 drop policy if exists "class members read announcements" on public.announcements;
-create policy "class members read announcements" on public.announcements for select to authenticated using(public.is_class_member(class_id));
+create policy "class members read announcements" on public.announcements for select to authenticated using(private.is_class_member(class_id));
 drop policy if exists "teacher posts announcements" on public.announcements;
-create policy "teacher posts announcements" on public.announcements for insert to authenticated with check(author_id=auth.uid() and public.is_teacher_of(class_id));
+create policy "teacher posts announcements" on public.announcements for insert to authenticated with check(author_id=auth.uid() and private.is_teacher_of(class_id));
 drop policy if exists "teacher deletes announcements" on public.announcements;
-create policy "teacher deletes announcements" on public.announcements for delete to authenticated using(public.is_teacher_of(class_id));
+create policy "teacher deletes announcements" on public.announcements for delete to authenticated using(private.is_teacher_of(class_id));
 -- Private object bucket; no public access. Object paths are prefixed by user UUID.
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values('studyside-resources','studyside-resources',false,20971520,array['application/pdf','image/png','image/jpeg','image/webp','text/plain','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.openxmlformats-officedocument.presentationml.presentation'])
@@ -152,7 +166,7 @@ drop policy if exists "owners read own resource objects" on storage.objects;
 create policy "class members read shared resource objects" on storage.objects for select to authenticated using(
  bucket_id='studyside-resources' and exists(
   select 1 from public.resources r where r.storage_path=name
-  and (r.owner_id=auth.uid() or (r.class_id is not null and public.is_class_member(r.class_id)))
+  and (r.owner_id=auth.uid() or (r.class_id is not null and private.is_class_member(r.class_id)))
  )
 );
 drop policy if exists "owners delete own resource objects" on storage.objects;
@@ -213,7 +227,7 @@ begin
   from public.quizzes q
   where q.id = target_quiz
     and q.published = true
-    and (q.class_id is null or public.is_class_member(q.class_id));
+    and (q.class_id is null or private.is_class_member(q.class_id));
 
   if quiz_questions is null then
     raise exception 'Quiz not found or not available to this account';
@@ -240,11 +254,11 @@ end;
 $$;
 
 -- These helpers are only intended for authenticated RLS evaluation.
-revoke all on function public.is_teacher_of(uuid) from public, anon;
-revoke all on function public.is_class_member(uuid) from public, anon;
+revoke all on function private.is_teacher_of(uuid) from public, anon;
+revoke all on function private.is_class_member(uuid) from public, anon;
 revoke all on function public.join_class_with_code(text) from public, anon;
 revoke all on function public.submit_quiz_attempt(uuid, jsonb) from public, anon;
-grant execute on function public.is_teacher_of(uuid) to authenticated;
-grant execute on function public.is_class_member(uuid) to authenticated;
+grant execute on function private.is_teacher_of(uuid) to authenticated;
+grant execute on function private.is_class_member(uuid) to authenticated;
 grant execute on function public.join_class_with_code(text) to authenticated;
 grant execute on function public.submit_quiz_attempt(uuid, jsonb) to authenticated;
