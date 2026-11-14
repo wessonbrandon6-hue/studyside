@@ -13,7 +13,7 @@ StudySide now uses its own Node.js API and SQLite database. The portal no longer
 
 ## Deploy the API
 1. The frontend stays on GitHub Pages. The API must run on a Node.js host or your own server; GitHub Pages cannot run a backend.
-2. Deploy the repository backend/ directory using backend/Dockerfile. The included backend/render.yaml is a Render deployment blueprint and uses a persistent disk. Render Starter and persistent disk resources are paid; check current pricing before deploying.
+2. Deploy the repository backend/ directory using backend/Dockerfile. The root render.yaml is a Render deployment blueprint and uses a persistent disk. Render Starter and persistent disk resources are paid; check current pricing before deploying.
 3. Set JWT_SECRET to a unique random secret of at least 32 characters. Set DATA_DIR to a directory on the persistent disk (the blueprint uses /app/backend/data).
 4. Set ALLOWED_ORIGINS to https://wessonbrandon6-hue.github.io (comma-separated if you add another frontend origin).
 5. After deployment, check https://YOUR-API-HOST/api/health.
